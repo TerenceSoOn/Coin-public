@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Trading AI Monitor</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Crypto Trading AI Monitor</h1>
+        <p class="subtitle">Three-Agent Strategy Pipeline: Strategist → Tactician → Executor</p>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="statusDot"></div>
+                <span>Backend: <strong id="backendStatus">Checking...</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Mode: <strong id="modeStatus">-</strong></span>
+            </div>
+            <div class="status-item">
+                <span id="pauseStatusText">Status: <strong id="pauseStatus">Running</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Pipeline: <strong id="cadenceStatus">-</strong></span>
+            </div>
+            <div class="status-item">
+                <span>Last Update: <strong id="lastUpdate">Never</strong></span>
+            </div>
+            <div class="status-item" style="margin-left: auto;">
+                <button onclick="togglePause()" id="pauseBtn" style="padding: 10px 18px;">
+                    <span id="pauseBtnText">⏸️ Pause</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab(event, 'config')">⚙️ Configuration</button>
+            <button class="tab" onclick="switchTab(event, 'activity')">� Agent Activity</button>
+            <button class="tab" onclick="switchTab(event, 'portfolio')">💼 Portfolio</button>
+        </div>
+
+        <!-- Config Tab -->
+        <div id="config" class="tab-content active">
+            <div class="card">
+                <h2>Runtime Configuration</h2>
+                <p class="info-text">Note: Trading mode (paper/sandbox/live) is configured in .env file and cannot be changed at runtime.</p>
+                <div class="grid">
+                    <div class="config-item">
+                        <label>Pipeline Scan Interval (minutes)</label>
+                        <input type="number" id="ai_cadence_minutes" min="1" max="60" />
+                        <small style="color: #9ca3af; font-size: 12px;">How often to check if strategist/tactician/executor work is due</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Price Spike Trigger (%)</label>
+                        <input type="number" id="price_spike_trigger_pct" step="0.1" />
+                    </div>
+                    <div class="config-item">
+                        <label>Margin Enabled</label>
+                        <input type="checkbox" id="margin_enabled" />
+                    </div>
+                    <div class="config-item">
+                        <label>Max Leverage</label>
+                        <input type="number" id="max_leverage" min="1" step="1" />
+                    </div>
+                    <div class="config-item">
+                        <label>Max Position ($)</label>
+                        <input type="number" id="max_position_usd" step="1" min="10" />
+                        <small style="color: #9ca3af; font-size: 12px;">Maximum USD per single trade (min $10)</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Max Total Exposure ($)</label>
+                        <input type="number" id="max_total_exposure_usd" step="1" min="10" />
+                        <small style="color: #9ca3af; font-size: 12px;">Maximum combined USD across ALL positions</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Daily Loss Cap ($)</label>
+                        <input type="number" id="daily_loss_cap_usd" step="1" min="0" />
+                        <small style="color: #9ca3af; font-size: 12px;">Stop trading if daily losses exceed this amount</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Symbols (comma separated)</label>
+                        <input type="text" id="symbols" placeholder="BTC-USDT, ETH-USDT" />
+                    </div>
+                    <div class="config-item">
+                        <label>Strategist Cache TTL (minutes)</label>
+                        <input type="number" id="strategist_cache_ttl_minutes" min="5" step="5" />
+                        <small style="color: #9ca3af; font-size: 12px;">How long strategist insights remain valid (default 240 = 4h)</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Tactician Hold Retry (minutes)</label>
+                        <input type="number" id="tactician_hold_retry_minutes" min="1" step="1" />
+                        <small style="color: #9ca3af; font-size: 12px;">When tactician says "hold", retry after this interval</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Executor Hold Retry (minutes)</label>
+                        <input type="number" id="executor_hold_retry_minutes" min="1" step="1" />
+                        <small style="color: #9ca3af; font-size: 12px;">Executor retry interval for incomplete plans</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Executor Deviation Threshold (%)</label>
+                        <input type="number" id="executor_deviation_threshold_pct" step="0.1" />
+                        <small style="color: #9ca3af; font-size: 12px;">Price deviation % that triggers stop-loss and re-evaluation</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Plan Execution Timeout (minutes)</label>
+                        <input type="number" id="plan_execution_timeout_minutes" min="1" step="1" />
+                        <small style="color: #9ca3af; font-size: 12px;">Maximum time for executor to complete a plan before expiry</small>
+                    </div>
+                    <div class="config-item">
+                        <label>Max Symbol Workers</label>
+                        <input type="number" id="max_symbol_workers" min="1" step="1" />
+                    </div>
+                    <div class="config-item">
+                        <label>Strategist Provider</label>
+                        <select id="strategist_provider">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Strategist Model</label>
+                        <input type="text" id="strategist_model" placeholder="deepseek-chat" />
+                    </div>
+                    <div class="config-item">
+                        <label>Tactician Provider</label>
+                        <select id="tactician_provider">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Tactician Model</label>
+                        <input type="text" id="tactician_model" placeholder="deepseek-chat" />
+                    </div>
+                    <div class="config-item">
+                        <label>Executor Provider</label>
+                        <select id="executor_provider">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="gemini">Gemini</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label>Executor Model</label>
+                        <input type="text" id="executor_model" placeholder="deepseek-chat" />
+                    </div>
+                </div>
+                <div class="actions-bar">
+                    <button onclick="loadConfig()">🔄 Reload Config</button>
+                    <button onclick="saveConfig()">💾 Save Config</button>
+                </div>
+                
+                <!-- Agent Control Section -->
+                <div class="agent-controls">
+                    <h3>⚡ Manual Agent Triggers</h3>
+                    <button class="agent-btn strategist" onclick="triggerAgent('strategist')" title="Analyze market trends (1D/4H data only)">
+                        🧠 Run Strategist
+                    </button>
+                    <button class="agent-btn tactician" onclick="triggerAgent('tactician')" title="Create trading plan (uses Strategist output + account data)">
+                        📋 Run Tactician
+                    </button>
+                    <button class="agent-btn executor" onclick="triggerAgent('executor')" title="Execute trading plan (auto-detects interruptions)">
+                        ⚡ Run Executor
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Activity Tab (NEW - replaces Pipeline & Role Decisions) -->
+        <div id="activity" class="tab-content">
+            <div class="card">
+                <div class="actions-bar">
+                    <h2>Agent Activity Timeline</h2>
+                    <button class="refresh-btn secondary" onclick="loadActivity()">🔄 Refresh</button>
+                </div>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">
+                    Complete workflow history showing Strategist analysis → Tactician plans → Executor execution
+                </p>
+                
+                <div id="activityFilters" style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+                    <select id="activitySymbol" onchange="loadActivity()" style="padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">All Symbols</option>
+                        <option value="BTC-USDT">BTC-USDT</option>
+                        <option value="ETH-USDT">ETH-USDT</option>
+                    </select>
+                    <select id="activityRole" onchange="loadActivity()" style="padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px;">
+                        <option value="">All Roles</option>
+                        <option value="strategist">🧠 Strategist</option>
+                        <option value="tactician">📋 Tactician</option>
+                        <option value="executor">⚡ Executor</option>
+                    </select>
+                    <select id="activityLimit" onchange="loadActivity()" style="padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; margin-left: auto;">
+                        <option value="10">Show 10</option>
+                        <option value="20" selected>Show 20</option>
+                        <option value="50">Show 50</option>
+                    </select>
+                </div>
+                
+                <div id="activityContainer" class="activity-timeline">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔄</div>
+                        <div class="empty-state-title">Loading Activity...</div>
+                        <div class="empty-state-text">Fetching agent decisions from the system</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Tab (moved from config tab) -->
+        <div id="portfolio" class="tab-content">
+            <div class="card">
+                <div class="actions-bar">
+                    <h2>Portfolio Overview</h2>
+                    <button class="refresh-btn secondary" onclick="loadPortfolio()">🔄 Refresh</button>
+                </div>
+                
+                <!-- Equity Summary -->
+                <div id="equityChangesPortfolio">
+                    <p style="color:#9ca3af;">Loading portfolio value...</p>
+                </div>
+
+                <!-- Detailed Holdings -->
+                <div style="margin-top: 24px;">
+                    <h3 style="margin: 0 0 16px 0; font-size: 18px; color:#1f2937; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                        <span style="width: 4px; height: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px;"></span>
+                        Detailed Holdings
+                    </h3>
+                    <div id="exchangeHoldingsPortfolio">
+                        <p style="color:#9ca3af;">Loading holdings...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
